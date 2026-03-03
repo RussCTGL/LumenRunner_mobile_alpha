@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using TMPro;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class PlayerShooter : MonoBehaviour
 {
@@ -55,30 +56,42 @@ public class PlayerShooter : MonoBehaviour
 
         if (Time.time < nextFireTime) return;
 
-        // Desktop click
-        if (Input.GetMouseButtonDown(0))
+        // Editor / Desktop mouse
+        if (Mouse.current != null && Mouse.current.leftButton != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            if (ignoreUI && EventSystem.current != null &&
-                EventSystem.current.IsPointerOverGameObject())
+            // Avoid clicking through UI (mouse)
+            if (ignoreUI && EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
 
-            Shoot(Input.mousePosition);
+            Vector2 mp = Mouse.current.position.ReadValue();
+            Shoot(mp);
             return;
         }
 
-        // Mobile tap
-        if (enableMobileControls && Input.touchCount > 0)
+        // Mobile touch
+        if (enableMobileControls && Touchscreen.current != null && Touchscreen.current.primaryTouch != null)
         {
-            Touch t = Input.GetTouch(0);
-
-            if (t.phase == TouchPhase.Began)
+            var touch = Touchscreen.current.primaryTouch;
+            if (touch.press.wasPressedThisFrame)
             {
-                if (ignoreUI && EventSystem.current != null &&
-                    EventSystem.current.IsPointerOverGameObject(t.fingerId))
-                    return;
+                // NOTE: For touch UI blocking with the new input system, add the Input System UI Input Module to your EventSystem.
+                if (ignoreUI && EventSystem.current != null)
+                {
+                    // If you use the Input System UI Input Module, EventSystem.current.IsPointerOverGameObject() will generally work.
+                    if (EventSystem.current.IsPointerOverGameObject())
+                        return;
+                }
 
-                Shoot(t.position);
+                Vector2 pos = touch.position.ReadValue();
+                Shoot(pos);
             }
+        }
+
+        // Keyboard manual reload (optional, Editor)
+        if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame && currentAmmo < maxAmmo)
+        {
+            StartCoroutine(Reload());
+            return;
         }
     }
 
@@ -101,7 +114,7 @@ public class PlayerShooter : MonoBehaviour
 
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
 
-        // iOS-safe / standard Unity Rigidbody API:
+        // Standard Unity API - works across platforms
         Rigidbody brb = bullet.GetComponent<Rigidbody>();
         if (brb != null)
             brb.linearVelocity = direction * shootForce;
@@ -127,14 +140,13 @@ public class PlayerShooter : MonoBehaviour
             ammoText.text = currentAmmo + " / " + maxAmmo;
     }
 
-    // ✅ Needed by AmmoBoostCollectible
+    // Methods used by AmmoBoostCollectible
     public void RefillAmmo(int amount)
     {
         currentAmmo = Mathf.Clamp(currentAmmo + amount, 0, maxAmmo);
         UpdateAmmoUI();
     }
 
-    // ✅ Needed by AmmoBoostCollectible
     public void ApplyBoost(float fireRateMultiplier, float reloadTimeMultiplier, float duration)
     {
         if (boostCoroutine != null)

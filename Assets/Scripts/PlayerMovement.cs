@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -14,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Mobile Drag Settings")]
     public bool enableMobileControls = true;
-    public float dragSensitivity = 3.0f; // steering responsiveness
+    public float dragSensitivity = 3.0f; // steering responsiveness (tune)
 
     [Header("Game State")]
     public int score = 0;
@@ -24,8 +25,8 @@ public class PlayerMovement : MonoBehaviour
     private bool isGameStopped = false;
 
     // Drag state
-    private int activeFingerId = -1;
-    private Vector2 touchStartPos;
+    private bool dragging = false;
+    private Vector2 dragStartPos; // screen-space
     private float mobileHorizontal = 0f;
 
     void Start()
@@ -41,16 +42,18 @@ public class PlayerMovement : MonoBehaviour
 
         float speedInput = 0f;
 
-        // Desktop speed control
-        if (Input.GetKey(KeyCode.W)) speedInput += 1f;
-        if (Input.GetKey(KeyCode.S)) speedInput -= 1f;
-
-        // Mobile drag steering
-        if (enableMobileControls && Input.touchCount > 0)
+        // Keyboard speed control (Editor / Desktop)
+        if (Keyboard.current != null)
         {
-            HandleTouch();
+            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) speedInput += 1f;
+            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) speedInput -= 1f;
         }
 
+        // Touch / Mouse drag handling updates mobileHorizontal
+        if (enableMobileControls)
+            HandlePointerDrag();
+
+        // Apply speed input
         if (Mathf.Abs(speedInput) > 0.01f)
         {
             currentForwardSpeed += speedInput * acceleration * Time.deltaTime;
@@ -63,12 +66,18 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isGameStopped) return;
 
-        float horizontalInput = Input.GetAxis("Horizontal");
+        float horizontalInput = 0f;
 
-        if (enableMobileControls)
+        // Keyboard horizontal (desktop)
+        if (Keyboard.current != null)
         {
-            horizontalInput = mobileHorizontal;
+            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) horizontalInput = -1f;
+            else if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) horizontalInput = 1f;
         }
+
+        // Touch/mouse drag overrides keyboard when active
+        if (enableMobileControls)
+            horizontalInput = mobileHorizontal;
 
         Vector3 v = rb.linearVelocity;
         v.z = currentForwardSpeed;
@@ -80,28 +89,58 @@ public class PlayerMovement : MonoBehaviour
         rb.position = p;
     }
 
-    private void HandleTouch()
+    private void HandlePointerDrag()
     {
-        Touch t = Input.GetTouch(0);
+        // Mouse (Editor) - support left button drag
+        if (Mouse.current != null && Mouse.current.leftButton != null)
+        {
+            if (Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                dragging = true;
+                dragStartPos = Mouse.current.position.ReadValue();
+            }
+            else if (Mouse.current.leftButton.isPressed && dragging)
+            {
+                Vector2 pos = Mouse.current.position.ReadValue();
+                Vector2 delta = pos - dragStartPos;
+                float normalized = (delta.x / Screen.width) * dragSensitivity * 3f;
+                mobileHorizontal = Mathf.Clamp(normalized, -1f, 1f);
+            }
+            else if (Mouse.current.leftButton.wasReleasedThisFrame)
+            {
+                dragging = false;
+                mobileHorizontal = 0f;
+            }
+        }
 
-        if (t.phase == TouchPhase.Began)
+        // Touchscreen (Mobile)
+        if (Touchscreen.current != null && Touchscreen.current.primaryTouch != null)
         {
-            activeFingerId = t.fingerId;
-            touchStartPos = t.position;
+            var touch = Touchscreen.current.primaryTouch;
+            if (touch.press.wasPressedThisFrame)
+            {
+                dragging = true;
+                dragStartPos = touch.position.ReadValue();
+            }
+            else if (touch.press.isPressed && dragging)
+            {
+                Vector2 pos = touch.position.ReadValue();
+                Vector2 delta = pos - dragStartPos;
+                float normalized = (delta.x / Screen.width) * dragSensitivity * 3f;
+                mobileHorizontal = Mathf.Clamp(normalized, -1f, 1f);
+            }
+            else if (touch.press.wasReleasedThisFrame)
+            {
+                dragging = false;
+                mobileHorizontal = 0f;
+            }
         }
-        else if (t.phase == TouchPhase.Moved && t.fingerId == activeFingerId)
-        {
-            float deltaX = t.position.x - touchStartPos.x;
 
-            // Normalize to screen width
-            float normalized = (deltaX / Screen.width) * dragSensitivity * 5f;
-            mobileHorizontal = Mathf.Clamp(normalized, -1f, 1f);
-        }
-        else if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
-        {
-            mobileHorizontal = 0f;
-            activeFingerId = -1;
-        }
+        // Accelerometer fallback (optional) - uncomment if you want tilt steering
+        // if (!dragging && enableMobileControls)
+        // {
+        //     mobileHorizontal = Mathf.Clamp(Input.acceleration.x * 2f, -1f, 1f);
+        // }
     }
 
     private void OnCollisionEnter(Collision collision)

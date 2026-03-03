@@ -21,6 +21,9 @@ public class BackwardsLaser : MonoBehaviour
     
     private GameManager gameManager;
 
+    private bool hasKilledPlayer = false;
+
+
     void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
@@ -80,8 +83,13 @@ public class BackwardsLaser : MonoBehaviour
 
     void KillPlayer()
     {
+        if (hasKilledPlayer) return; 
+        hasKilledPlayer = true;
+        
         Debug.Log("Player hit by laser. Triggering Game Over!");
         
+        FindObjectOfType<AnalyticsUploader>()?.LogDeath(DeathCause.Laser);
+
         if (gameManager != null)
         {
             gameManager.EndGame();

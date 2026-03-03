@@ -17,10 +17,23 @@ public class GuidanceUI : MonoBehaviour
 
     void Update()
     {
-        bool keyPressed = Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame;
-        bool mouseClicked = Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame || Mouse.current.middleButton.wasPressedThisFrame);
+        if (hasStartedFading) return;
 
-        if (!hasStartedFading && (keyPressed || mouseClicked))
+        bool keyPressed =
+            Keyboard.current != null &&
+            Keyboard.current.anyKey.wasPressedThisFrame;
+
+        bool mouseClicked =
+            Mouse.current != null &&
+            (Mouse.current.leftButton.wasPressedThisFrame ||
+             Mouse.current.rightButton.wasPressedThisFrame ||
+             Mouse.current.middleButton.wasPressedThisFrame);
+
+        bool screenTouched =
+            Touchscreen.current != null &&
+            Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+
+        if (keyPressed || mouseClicked || screenTouched)
         {
             hasStartedFading = true;
             StartCoroutine(FadeOutRoutine());

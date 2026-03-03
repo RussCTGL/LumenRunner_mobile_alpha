@@ -694,7 +694,7 @@ GameObject:
   - component: {fileID: 252227032}
   m_Layer: 0
   m_Name: Cube (1)
-  m_TagString: Obstacles
+  m_TagString: Moving Obstacle
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -821,7 +821,7 @@ GameObject:
   - component: {fileID: 255105974}
   m_Layer: 0
   m_Name: KillZone
-  m_TagString: Obstacles
+  m_TagString: Fall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2047,12 +2047,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8fd0270b37f74d478046138d6ad1cc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  forwardSpeed: 5
+  minSpeed: 5
+  maxSpeed: 30
+  acceleration: 15
   sideSpeed: 15
   roadWidth: 9
+  enableMobileControls: 1
+  dragSensitivity: 3
   score: 0
-  gameOverUI: {fileID: 0}
-  finishedUI: {fileID: 0}
+  gameManager: {fileID: 1677936942}
 --- !u!54 &633982878
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2197,6 +2200,10 @@ MonoBehaviour:
   fireRate: 2
   maxAmmo: 5
   reloadTime: 2.5
+  enableMobileControls: 1
+  ignoreUI: 1
+  ammoText: {fileID: 0}
+  reloadingPrompt: {fileID: 0}
 --- !u!1 &644659975
 GameObject:
   m_ObjectHideFlags: 0
@@ -3021,9 +3028,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'A  /  D to Move
+  m_text: 'Swip left/right to Move
 
-    Left Click to Shoot'
+    Tap whereever you want to Shoot at'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3115,6 +3122,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d86d3c6a2d3fe4e9ba4f1286082ce0c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GuidanceUI
+  fadeDuration: 1
 --- !u!1 &1054545703
 GameObject:
   m_ObjectHideFlags: 0
@@ -4468,6 +4476,52 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1635320507}
   m_CullTransparentMesh: 1
+--- !u!1 &1653249771
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1653249773}
+  - component: {fileID: 1653249772}
+  m_Layer: 0
+  m_Name: AnalyticsManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1653249772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1653249771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc6af3826f7502c45a204234e971bb03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnalyticsUploader
+  endpoint: https://script.google.com/macros/s/AKfycbw9M_oug82hPArKXtQEsRy-_8_MtHyMKrYEYPW0fpbpMgmxpzgnRnqPGNPKd1t_VXqM/exec
+  token: 888
+--- !u!4 &1653249773
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1653249771}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -24.16583, y: 0, z: 13.35979}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1677936941
 GameObject:
   m_ObjectHideFlags: 0
@@ -4497,8 +4551,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcceb06ad8eb844729076c0ae1785c7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  gameOverUI: {fileID: 0}
+  gameOverTextUI: {fileID: 598273531}
+  restartButtonUI: {fileID: 644659975}
   finishedUI: {fileID: 1381868579}
+  delayBeforeRestart: 2
 --- !u!4 &1677936943
 Transform:
   m_ObjectHideFlags: 0
@@ -5537,3 +5593,4 @@ SceneRoots:
   - {fileID: 1677936943}
   - {fileID: 255105977}
   - {fileID: 738060764}
+  - {fileID: 1653249773}
